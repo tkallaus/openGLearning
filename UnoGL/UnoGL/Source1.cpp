@@ -107,24 +107,34 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    //First Triangle
+    //Now a Rectangle
     float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-     0.0f,  0.5f, 0.0f
+    -0.5f, -0.5f, 0.0f, //bot left
+     0.5f, -0.5f, 0.0f, //bot right
+     0.5f,  0.5f, 0.0f, //top right
+     -0.5f, 0.5f, 0.0f  //top left
+    };
+    unsigned int indices[] = {
+        2, 1, 0, //triangle1
+        0, 3, 2  //triangle2
     };
 
-    //Passing triangle vertex info to the graphics card, no shaders yet
+    //creating buffer/array objects
     unsigned int VBO;
     unsigned int VAO;
+    unsigned int EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     //Bind order: Vertex Array, Vertex buffer(s), Vertex attribute(s).
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     /*Tells OpenGL how to interpret vertex data :
     0 matchs the layout location specified in the vertex shader source
@@ -136,6 +146,9 @@ int main()
     */
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    //how to unbind for safety if needed
+    //glBindVertexArray(0);
 
     //Render loop, each iteration a frame
     while (!glfwWindowShouldClose(window))
@@ -150,7 +163,9 @@ int main()
         //Draw
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO); //Technically not needed without a second VAO
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        //glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
 
         //check+call events, swapping buffers prevents users from seeing the image while its being drawn(?)
         glfwSwapBuffers(window);
@@ -165,6 +180,10 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
