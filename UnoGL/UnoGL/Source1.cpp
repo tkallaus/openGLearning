@@ -12,15 +12,24 @@ const unsigned int SCR_HEIGHT = 600;
 //A temporary(hopefully) representation of a GLSL shader, bit ugly
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
+"layout (location = 1) in vec3 aColor;\n"
+"out vec3 vertexColor;\n"
 "void main()\n"
 "{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"   gl_Position = vec4(aPos.xyz, 1.0);\n" //'swizzling' is cool
+"   vertexColor = aColor;\n" //sets vertex color to the 'other' vec3 defined in the vertices data 
 "}\0";
 const char* fragmentShaderSource = "#version 330 core\n"
 "out vec4 FragColor;\n"
+"in vec3 vertexColor;\n" //the input from the above vertexShader, matching name and type
+"uniform vec4 gloColor;\n" //global uniform color
 "void main()\n"
 "{\n"
-"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+"   FragColor = vec4(vertexColor, 1.0);\n"
+//"   if(vertexColor.x < 0.6f)\n" //Interestingly overwrites every fragment that has a Red value over 0.6f, even interpolated ones; didn't expect that somehow.
+//"   {\n"
+//"      FragColor = gloColor;\n"
+//"   }\n"
 "}\n\0";
 
 
@@ -109,10 +118,11 @@ int main()
 
     //Now a Rectangle
     float vertices[] = {
-    -0.5f, -0.5f, 0.0f, //bot left
-     0.5f, -0.5f, 0.0f, //bot right
-     0.5f,  0.5f, 0.0f, //top right
-     -0.5f, 0.5f, 0.0f  //top left
+    //positions         //colors
+    -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,//bot left
+     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,//bot right
+     0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,//top right
+     -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.5f //top left
     };
     unsigned int indices[] = {
         2, 1, 0, //triangle1
@@ -141,11 +151,15 @@ int main()
     3 is the size of each attribute, it's a vector3.
     GL_FLOAT is the type of each coordinate.
     GL_FALSE specifies that we don't want the data normalized.
-    3 * sizeof(float) is the stride, or the total space between vertex attributes. There are 3 floats.
+    6 * sizeof(float) is the stride, or the total space between vertex attributes. There are 6 floats between attributes now.
     (void*)0 is the offset of where the data begins, it is 0 because we're handing it the data plainly.
+        (void*)(3* sizeof(float)) is the new offset for the color value, since it starts 3 floats into the array.
     */
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    //^-position color-v
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     //how to unbind for safety if needed
     //glBindVertexArray(0);
@@ -156,12 +170,19 @@ int main()
         //input func
         processInput(window);
 
-        //rendering commands
+        //rendering commands-- (tells the program to clear old frames with a certain color)
         glClearColor(0.1f, 0.4f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        //Draw
+        //Color value that changes over time
+        float timeV = glfwGetTime();
+        float oscColorV = (sin(timeV) / 2.0f) + 0.5f;
+        //Locating the now implanted uniform global value
+        int vertexColorLoc = glGetUniformLocation(shaderProgram, "gloColor");
+
+        //Draw--
         glUseProgram(shaderProgram);
+        glUniform4f(vertexColorLoc, 0.0f, oscColorV, 0.0f, 1.0f); //sending the oscillating value while the program is running
         glBindVertexArray(VAO); //Technically not needed without a second VAO
         //glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
