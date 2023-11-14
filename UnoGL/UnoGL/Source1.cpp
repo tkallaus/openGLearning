@@ -2,6 +2,8 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+#include <UnoGL\Shader.h>
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
@@ -9,28 +11,9 @@ void processInput(GLFWwindow* window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-//A temporary(hopefully) representation of a GLSL shader, bit ugly
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"layout (location = 1) in vec3 aColor;\n"
-"out vec3 vertexColor;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.xyz, 1.0);\n" //'swizzling' is cool
-"   vertexColor = aColor;\n" //sets vertex color to the 'other' vec3 defined in the vertices data 
-"}\0";
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"in vec3 vertexColor;\n" //the input from the above vertexShader, matching name and type
-"uniform vec4 gloColor;\n" //global uniform color
-"void main()\n"
-"{\n"
-"   FragColor = vec4(vertexColor, 1.0);\n"
-//"   if(vertexColor.x < 0.6f)\n" //Interestingly overwrites every fragment that has a Red value over 0.6f, even interpolated ones; didn't expect that somehow.
-//"   {\n"
-//"      FragColor = gloColor;\n"
-//"   }\n"
-"}\n\0";
+//yay files
+const char* vertexShaderPath = "vShader1.vs";
+const char* fragmentShaderPath = "fShader1.fs";
 
 
 int main()
@@ -57,64 +40,8 @@ int main()
         return -1;
     }
 
-    //BasicVertexShaderCreation
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    //Check if the vertex compilation broke
-    /*
-    int  vsuccess;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vsuccess);
-    if (!vsuccess)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    */
-
-    //BasicFragmentShaderCreation
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    
-    //Check if the fragment compilation broke
-    /*
-    int  fsuccess;
-    char infoLog[512];
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fsuccess);
-    if (!fsuccess)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    */
-
-    //Link shaders to one shader program
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    //Check if the shader program blew up
-    /*
-    int  psuccess;
-    char infoLog[512];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &psuccess);
-    if (!psuccess)
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    */
-
-    //Delete the shaders now since they're in the program
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    //Use new shader class to make a shader
+    Shader shaderProgram(vertexShaderPath, fragmentShaderPath);
 
     //Now a Rectangle
     float vertices[] = {
@@ -177,12 +104,10 @@ int main()
         //Color value that changes over time
         float timeV = glfwGetTime();
         float oscColorV = (sin(timeV) / 2.0f) + 0.5f;
-        //Locating the now implanted uniform global value
-        int vertexColorLoc = glGetUniformLocation(shaderProgram, "gloColor");
 
         //Draw--
-        glUseProgram(shaderProgram);
-        glUniform4f(vertexColorLoc, 0.0f, oscColorV, 0.0f, 1.0f); //sending the oscillating value while the program is running
+        shaderProgram.use(); //New swanky shaderprogram
+        shaderProgram.setFloat("gloColor", oscColorV);
         glBindVertexArray(VAO); //Technically not needed without a second VAO
         //glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
