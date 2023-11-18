@@ -154,6 +154,7 @@
     <None Include="vShader1.vs" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="CatBlushSanta.png" />
     <Image Include="container.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

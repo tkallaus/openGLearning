@@ -121,24 +121,34 @@ int main()
     //  Mipmap texture filtering can also be adjusted.
     //      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR); for example would interpolate between the two closest mipmaps to a pixel size, then use nearest neighbor.
 
-    //Load the textures
-    //Using stbi_load, we give it the location of the file and it gives us the width, height, and number of color channels.
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
     //Generates a texture object. 1 is how many textures, any more and it'd give us an array.
-    unsigned int texture;
-    glGenTextures(1, &texture);
+    unsigned int texture1, texture2;
+    glGenTextures(1, &texture1);
     //Bind to ensure subsequent commands affect this texture.
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     //Wrapping and filtering options
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    //Flips the pictures, mostly just for the second one
+    stbi_set_flip_vertically_on_load(true);
+    //Load the textures
+    //Using stbi_load, we give it the location of the file and it gives us the width, height, and number of color channels.
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+
     if (data) //catches if i did a path wrong
     {
-        //--todo:big explain--
+        //Argument by Argument:
+        //GL_TEXTURE_2D is the target on the currently bound texture. TEX_1D/3D will not be affected.
+        //0 is the mipmap level we're creating a texture for, since we aren't doing it manually for each level we just leave it at 0.
+        //GL_RGB is the format it is stored in, we have RGB values so we store it as GL_RGB.
+        //4th/5th are the dimensions we stored earlier.
+        //0 is always 0, apparently has some legacy function.
+        //GL_RGB is the format of our source image, GL_UNSIGNED_BYTE is how we pass along the image's data.
+        //data is the actual image data we loaded before.
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
@@ -150,8 +160,37 @@ int main()
     //free image memory after we're done
     stbi_image_free(data);
 
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    data = stbi_load("CatBlushSanta.png", &width, &height, &nrChannels, 0);
+
+    if (data)
+    {
+        //changes from GL_RGB to GL_RGBA for an image using transparency.
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
     //how to unbind for safety if needed
     //glBindVertexArray(0);
+
+    shaderProgram.use(); //have to activate the program before messing with uniforms
+    //Have to let openGL know which texture unit each sampler2D in our shaders belong to:
+    //can set with the functions included
+    glUniform1i(glGetUniformLocation(shaderProgram.ID, "texmex1"), 0);
+    //or set it via the program we made
+    shaderProgram.setInt("texmex2", 1);
+
 
     //Render loop, each iteration a frame
     while (!glfwWindowShouldClose(window))
@@ -167,11 +206,18 @@ int main()
         float timeV = glfwGetTime();
         float oscColorV = (sin(timeV) / 2.0f) + 0.5f;
 
+        //How you set the active texture unit, 0 to 15.
+        //Note that apparently some graphics drivers don't automatically set an default active texture.
+        //They are also defined in order, GL_TEXTURE0 + 8 = GL_TEXTURE8, for example.
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
         //Draw--
         shaderProgram.use(); //New swanky shaderprogram
         shaderProgram.setFloat("gloColor", oscColorV);
         shaderProgram.setFloat("texMove", inputV);
-        glBindTexture(GL_TEXTURE_2D, texture); //new texture
         glBindVertexArray(VAO); //Technically not needed without a second VAO
         //glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
