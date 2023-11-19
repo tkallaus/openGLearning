@@ -15,5 +15,15 @@ void main()
    
    //mixes two textures in the same area, the third argument determines the mix
    //0.2 returns 80% the first color, 20% the second.
-   FragColor = mix(texture(texmex1, texCoord), texture(texmex2, texCoord), 0.6);
+   //FragColor = mix(texture(texmex1, texCoord), texture(texmex2, texCoord), 0.6);
+
+   //Replaces the transparent bit of the 2nd image with the 1st image, fixing the darkening caused by using the mix() function.
+   if(texture(texmex2, texCoord).w < 0.1)
+   {
+        FragColor = texture(texmex1, texCoord);
+   }
+   else
+   {
+        FragColor = texture(texmex2, texCoord);
+   }
 }
