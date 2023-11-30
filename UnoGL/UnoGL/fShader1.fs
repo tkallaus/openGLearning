@@ -25,5 +25,6 @@ void main()
    else
    {
         FragColor = texture(texmex2, texCoord);
+        FragColor = FragColor + vec4(gloColor, 0, gloColor/2, 1.0);
    }
 }

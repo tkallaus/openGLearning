@@ -7,11 +7,11 @@ out vec3 vertexColor;
 out vec2 texCoord;
 
 //Temp for move back and forth
-uniform float texMove;
+uniform mat4 texMove;
 
 void main()
 {
-   gl_Position = vec4(aPos.x + texMove, aPos.yz, 1.0); //'swizzling' is cool
+   gl_Position = texMove * vec4(aPos.xyz, 1.0); //'swizzling' is cool
    vertexColor = aColor; //sets vertex color to the 'other' vec3 defined in the vertices data 
    texCoord = aTexCoord;
 }

@@ -4,6 +4,10 @@
 #include <GLFW/glfw3.h>
 #include <UnoGL\stb_image.h>
 
+#include <glm/glm.hpp> //the math
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <UnoGL\Shader.h>
 
 #include <iostream>
@@ -11,7 +15,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
-// settings, not mentioned but useful later prolly
+// settings, not mentioned but useful later prolly, maybe??
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
@@ -20,7 +24,7 @@ const char* vertexShaderPath = "vShader1.vs";
 const char* fragmentShaderPath = "fShader1.fs";
 
 //quick value to mess with via input
-float inputV = 0.0f;
+float inputV = 0.1f;
 
 
 int main()
@@ -214,10 +218,20 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+        //Create transform matrix
+        glm::mat4 transform = glm::mat4(1.0f); //Initialize to identity matrix first
+        //Recommended (or maybe even required) order: translate, rotate, scale.
+        transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+        //rotates over time, plus i used a normalized vector to finally make something move in 3d around here
+        transform = glm::rotate(transform, (float)glfwGetTime() * inputV, glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f)));
+
         //Draw--
         shaderProgram.use(); //New swanky shaderprogram
         shaderProgram.setFloat("gloColor", oscColorV);
-        shaderProgram.setFloat("texMove", inputV);
+        //Send transform matrix
+        unsigned int transformLoc = glGetUniformLocation(shaderProgram.ID, "texMove");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
         glBindVertexArray(VAO); //Technically not needed without a second VAO
         //glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
